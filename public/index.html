@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Alpha Social</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="authScreen" class="auth-screen">
+      <div class="auth-card">
+        <div class="auth-brand">Alpha Social</div>
+        <div class="auth-tabs">
+          <button class="auth-tab active" type="button" data-mode="login">Login</button>
+          <button class="auth-tab" type="button" data-mode="register">Register</button>
+        </div>
+
+        <form id="authForm" class="auth-form">
+          <div id="registerFields" class="register-fields hidden">
+            <input id="registerName" type="text" placeholder="Full name" />
+            <input id="registerUsername" type="text" placeholder="Username" />
+            <input id="registerEmail" type="email" placeholder="Email address" />
+          </div>
+
+          <input id="authIdentifier" type="text" placeholder="Email or username" />
+          <input id="authPassword" type="password" placeholder="Password" />
+          <button id="authSubmitBtn" type="submit" class="primary-btn">Login</button>
+          <p id="authMessage" class="auth-message"></p>
+        </form>
+      </div>
+    </div>
+
+    <div id="appShell" class="app-shell hidden">
+      <aside class="sidebar">
+        <div class="brand">Alpha Social</div>
+        <nav>
+          <button class="nav-item active" data-view="home">Home</button>
+          <button class="nav-item" data-view="explore">Explore</button>
+          <button class="nav-item" data-view="messages">Messages</button>
+          <button class="nav-item" data-view="notifications">Notifications</button>
+          <button class="nav-item" data-view="profile">Profile</button>
+        </nav>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Your network</p>
+            <h1 id="pageTitle">Social Feed</h1>
+          </div>
+          <div class="topbar-actions">
+            <button id="themeToggle" class="secondary-btn" type="button">🌙 Dark</button>
+            <div class="user-picker-wrap">
+              <label for="userSelect">Current user</label>
+              <select id="userSelect"></select>
+            </div>
+          </div>
+        </header>
+
+        <section id="composerSection" class="composer card">
+          <div class="composer-header">
+            <img id="currentUserAvatar" alt="Current user avatar" />
+            <div>
+              <h3 id="currentUserName">User</h3>
+            </div>
+          </div>
+
+          <textarea id="postInput" rows="3" placeholder="Share an update with your community..."></textarea>
+          <div class="composer-actions">
+            <input id="imageInput" type="url" placeholder="Optional image URL" />
+            <button id="postButton" class="primary-btn">Post</button>
+          </div>
+        </section>
+
+        <section id="feed" class="feed"></section>
+      </main>
+
+      <aside class="right-panel">
+        <div class="card profile-card">
+          <div class="profile-card-header">
+            <img id="profileAvatar" alt="Profile avatar" />
+            <div>
+              <h2 id="profileName">User Name</h2>
+              <p id="profileUsername">@username</p>
+            </div>
+          </div>
+          <p id="profileBio" class="profile-bio"></p>
+          <div class="stats-row">
+            <div>
+              <strong id="postsCount">0</strong>
+              <span>Posts</span>
+            </div>
+            <div>
+              <strong id="followersCount">0</strong>
+              <span>Followers</span>
+            </div>
+            <div>
+              <strong id="followingCount">0</strong>
+              <span>Following</span>
+            </div>
+          </div>
+          <button id="followButton" class="secondary-btn">Follow</button>
+        </div>
+
+        <div class="card suggestions-card">
+          <h3>People to follow</h3>
+          <div id="suggestionsList" class="suggestions-list"></div>
+        </div>
+      </aside>
+    </div>
+
+    <script src="script.js"></script>
+  </body>
+</html>

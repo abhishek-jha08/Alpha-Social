@@ -1,0 +1,23 @@
+{
+  "name": "alphaproject-social-app",
+  "version": "1.0.0",
+  "description": "Social media app using Express.js and SQLite",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "social-media",
+    "express",
+    "sqlite",
+    "javascript"
+  ],
+  "author": "AI Assistant",
+  "license": "MIT",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.7"
+  }
+}
