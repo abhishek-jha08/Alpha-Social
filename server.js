@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const crypto = require('crypto');
 const {
   initializeDatabase,
   getAllUsers,
@@ -15,6 +16,47 @@ const {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const SESSION_SECRET = process.env.ALPHA_SESSION_SECRET || 'alpha-social-secret';
+
+function createSessionToken(userId) {
+  const signature = crypto.createHmac('sha256', SESSION_SECRET).update(String(userId)).digest('hex');
+  return `${userId}:${signature}`;
+}
+
+function getSessionUserId(req) {
+  const rawCookie = req.headers.cookie || '';
+  const match = rawCookie.match(/(?:^|;\s*)alpha_session=([^;]+)/);
+  if (!match) {
+    return null;
+  }
+
+  const token = decodeURIComponent(match[1]);
+  if (!token || !token.includes(':')) {
+    return null;
+  }
+
+  const [userId, signature] = token.split(':');
+  if (!userId || !signature) {
+    return null;
+  }
+
+  const expected = crypto.createHmac('sha256', SESSION_SECRET).update(String(userId)).digest('hex');
+  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+    return null;
+  }
+
+  return Number(userId);
+}
+
+function requireAuth(req, res, next) {
+  const userId = getSessionUserId(req);
+  if (!userId) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+
+  req.userId = userId;
+  next();
+}
 
 const sanitizeUser = (user) => {
   if (!user) return null;
@@ -71,6 +113,9 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email/username or password' });
     }
 
+    const sessionToken = createSessionToken(user.id);
+    res.setHeader('Set-Cookie', `alpha_session=${encodeURIComponent(sessionToken)}; Path=/; SameSite=Lax; HttpOnly=false`);
+
     return res.json({
       message: 'Login successful',
       user: sanitizeUser(user)
@@ -80,9 +125,9 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
-app.get('/api/users', async (req, res) => {
+app.get('/api/users', requireAuth, async (req, res) => {
   try {
-    const viewerId = Number(req.query.viewerId || 0);
+    const viewerId = Number(req.query.viewerId || req.userId);
     const users = await getAllUsers(viewerId);
     res.json(users.map(sanitizeUser));
   } catch (error) {
@@ -90,8 +135,12 @@ app.get('/api/users', async (req, res) => {
   }
 });
 
-app.get('/api/users/:id', async (req, res) => {
+app.get('/api/users/:id', requireAuth, async (req, res) => {
   try {
+    if (Number(req.params.id) !== Number(req.userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const user = await getUserProfile(Number(req.params.id));
 
     if (!user) {
@@ -104,9 +153,12 @@ app.get('/api/users/:id', async (req, res) => {
   }
 });
 
-app.get('/api/posts', async (req, res) => {
+app.get('/api/posts', requireAuth, async (req, res) => {
   try {
-    const currentUserId = Number(req.query.userId || 1);
+    const currentUserId = Number(req.query.userId || req.userId);
+    if (currentUserId !== Number(req.userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     const posts = await getFeed(currentUserId);
     res.json(posts);
   } catch (error) {
@@ -114,41 +166,54 @@ app.get('/api/posts', async (req, res) => {
   }
 });
 
-app.post('/api/posts', async (req, res) => {
+app.post('/api/posts', requireAuth, async (req, res) => {
   try {
     const { userId, content, image } = req.body;
+    const currentUserId = Number(userId || req.userId);
 
-    if (!userId || !content) {
+    if (currentUserId !== Number(req.userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!content) {
       return res.status(400).json({ error: 'User ID and post content are required' });
     }
 
-    const result = await createPost(Number(userId), String(content), image || '');
+    const result = await createPost(currentUserId, String(content), image || '');
     res.status(201).json({ success: true, postId: result.id });
   } catch (error) {
     res.status(400).json({ error: error.message || 'Failed to create post' });
   }
 });
 
-app.post('/api/posts/:id/comments', async (req, res) => {
+app.post('/api/posts/:id/comments', requireAuth, async (req, res) => {
   try {
     const postId = Number(req.params.id);
     const { userId, content } = req.body;
+    const currentUserId = Number(userId || req.userId);
 
-    if (!userId || !content) {
+    if (currentUserId !== Number(req.userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    if (!content) {
       return res.status(400).json({ error: 'User ID and comment content are required' });
     }
 
-    const result = await createComment(postId, Number(userId), String(content));
+    const result = await createComment(postId, currentUserId, String(content));
     res.status(201).json({ success: true, commentId: result.id });
   } catch (error) {
     res.status(400).json({ error: error.message || 'Failed to create comment' });
   }
 });
 
-app.post('/api/posts/:id/like', async (req, res) => {
+app.post('/api/posts/:id/like', requireAuth, async (req, res) => {
   try {
     const postId = Number(req.params.id);
-    const userId = Number(req.body.userId || 1);
+    const userId = Number(req.body.userId || req.userId);
+    if (userId !== Number(req.userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
     const result = await toggleLike(postId, userId);
     res.json(result);
   } catch (error) {
@@ -156,10 +221,15 @@ app.post('/api/posts/:id/like', async (req, res) => {
   }
 });
 
-app.post('/api/users/:id/follow', async (req, res) => {
+app.post('/api/users/:id/follow', requireAuth, async (req, res) => {
   try {
     const followingId = Number(req.params.id);
-    const followerId = Number(req.body.followerId || 1);
+    const followerId = Number(req.body.followerId || req.userId);
+
+    if (followerId !== Number(req.userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
     const result = await toggleFollow(followerId, followingId);
     res.json(result);
   } catch (error) {

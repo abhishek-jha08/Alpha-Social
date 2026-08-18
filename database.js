@@ -339,7 +339,7 @@ async function getUserPosts(userId) {
 
 async function toggleFollow(followerId, followingId) {
   if (followerId === followingId) {
-    return { following: false };
+    return { following: false, followers_count: await get('SELECT COUNT(*) AS count FROM followers WHERE following_id = ?', [followingId]).then((row) => Number(row.count || 0)) };
   }
 
   const existing = await get(
@@ -349,11 +349,13 @@ async function toggleFollow(followerId, followingId) {
 
   if (existing) {
     await run('DELETE FROM followers WHERE follower_id = ? AND following_id = ?', [followerId, followingId]);
-    return { following: false };
+    const followersCount = await get('SELECT COUNT(*) AS count FROM followers WHERE following_id = ?', [followingId]).then((row) => Number(row.count || 0));
+    return { following: false, followers_count: followersCount };
   }
 
   await run('INSERT INTO followers (follower_id, following_id) VALUES (?, ?)', [followerId, followingId]);
-  return { following: true };
+  const followersCount = await get('SELECT COUNT(*) AS count FROM followers WHERE following_id = ?', [followingId]).then((row) => Number(row.count || 0));
+  return { following: true, followers_count: followersCount };
 }
 
 async function getFeed(currentUserId) {

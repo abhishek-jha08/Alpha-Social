@@ -118,13 +118,16 @@ function showAppShell() {
 }
 
 function renderUserSelect() {
-  els.userSelect.innerHTML = state.users
-    .map((user) => `<option value="${user.id}">${user.name} (@${user.username})</option>`)
-    .join('');
-
-  if (state.currentUserId) {
-    els.userSelect.value = String(state.currentUserId);
+  const currentUser = getUserById(state.currentUserId);
+  if (!currentUser) {
+    els.userSelect.innerHTML = '';
+    els.userSelect.disabled = true;
+    return;
   }
+
+  els.userSelect.innerHTML = `<option value="${currentUser.id}">${currentUser.name} (@${currentUser.username})</option>`;
+  els.userSelect.value = String(currentUser.id);
+  els.userSelect.disabled = true;
 }
 
 function renderCurrentUserCard() {
@@ -590,18 +593,19 @@ async function toggleFollow(targetUserId) {
     body: JSON.stringify({ followerId: state.currentUserId })
   });
 
+  const nextFollowing = Boolean(result.following);
+  const nextFollowersCount = Number(result.followers_count ?? 0);
+
   const user = getUserById(targetUserId);
   if (user) {
-    const nextFollowing = Boolean(result.following);
     user.is_following = nextFollowing;
-    user.followers_count = Math.max(0, Number(user.followers_count || 0) + (nextFollowing ? 1 : -1));
+    user.followers_count = nextFollowersCount;
   }
 
   const stateUser = state.users.find((item) => Number(item.id) === Number(targetUserId));
   if (stateUser) {
-    const nextFollowing = Boolean(result.following);
     stateUser.is_following = nextFollowing;
-    stateUser.followers_count = Math.max(0, Number(stateUser.followers_count || 0) + (nextFollowing ? 1 : -1));
+    stateUser.followers_count = nextFollowersCount;
   }
 
   renderProfileCard();
@@ -685,6 +689,7 @@ async function handleAuthSubmit(event) {
     state.currentUserId = Number(user.id);
     state.selectedProfileId = state.currentUserId;
     localStorage.setItem('alpha-user-id', String(user.id));
+    document.cookie = `alpha_session=${encodeURIComponent(user.id)}; path=/; SameSite=Lax`;
     els.authMessage.textContent = 'Login successful';
     els.authMessage.style.color = '#86efac';
     await loadUsers();
@@ -741,8 +746,9 @@ async function initializeApp() {
   updateAuthMode();
 
   const storedUserId = Number(localStorage.getItem('alpha-user-id') || 0);
+  const hasSession = document.cookie.includes('alpha_session=');
 
-  if (storedUserId) {
+  if (storedUserId && hasSession) {
     state.currentUserId = storedUserId;
     state.selectedProfileId = storedUserId;
     try {
@@ -753,16 +759,14 @@ async function initializeApp() {
       return;
     } catch (error) {
       localStorage.removeItem('alpha-user-id');
+      document.cookie = 'alpha_session=; Max-Age=0; path=/; SameSite=Lax';
       state.currentUserId = null;
     }
   }
 
+  state.currentUserId = null;
+  state.selectedProfileId = null;
   showAuthScreen();
-  try {
-    await loadUsers();
-  } catch (error) {
-    console.error(error);
-  }
 }
 
 els.authForm.addEventListener('submit', handleAuthSubmit);
