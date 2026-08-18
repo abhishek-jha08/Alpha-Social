@@ -28,16 +28,20 @@ const { initializeDatabase, getAllUsers, toggleFollow, db } = require('../databa
   assert.equal(toggleResult.following, true, 'Toggle follow should report followed state');
 
   const refreshedUsers = await getAllUsers(1);
+  const refreshedAva = refreshedUsers.find((user) => user.username === 'ava');
   const refreshedMia = refreshedUsers.find((user) => user.username === 'mia');
   assert.equal(Number(refreshedMia.is_following), 1, 'The user should be marked as followed after toggling on');
+  assert.equal(Number(refreshedAva.following_count), 2, 'The current user should have one more person in their following count after follow');
 
   const beforeUnfollow = Number(refreshedMia.followers_count);
   const unfollowResult = await toggleFollow(1, 3);
   assert.equal(unfollowResult.following, false, 'Toggle follow should report unfollowed state');
 
   const finalUsers = await getAllUsers(1);
+  const finalAva = finalUsers.find((user) => user.username === 'ava');
   const finalMia = finalUsers.find((user) => user.username === 'mia');
   assert.equal(Number(finalMia.followers_count), beforeUnfollow - 1, 'Follower count should decrease by exactly one after unfollow');
+  assert.equal(Number(finalAva.following_count), 1, 'Following count should decrease by exactly one after unfollow');
   assert.equal(Number(finalMia.is_following), 0, 'The user should be marked as not followed after toggling off');
 
   console.log('follow-state test passed');

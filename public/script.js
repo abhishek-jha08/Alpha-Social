@@ -189,6 +189,19 @@ function renderSuggestions() {
   });
 }
 
+function renderMediaMarkup(mediaUrl, altText = 'Post media') {
+  if (!mediaUrl) return '';
+
+  const normalized = String(mediaUrl).toLowerCase();
+  const isVideo = /data:video\//.test(normalized) || /\.(mp4|webm|ogg)(\?|$)/.test(normalized) || /video\//.test(normalized);
+
+  if (isVideo) {
+    return `<video class="post-image post-video" controls playsinline src="${mediaUrl}"></video>`;
+  }
+
+  return `<img class="post-image" src="${mediaUrl}" alt="${altText}" />`;
+}
+
 function renderPosts() {
   if (!state.posts.length) {
     els.feed.innerHTML = '<div class="card"><p>No posts yet. Start the conversation.</p></div>';
@@ -214,7 +227,7 @@ function renderPosts() {
           </div>
 
           <div class="post-content">${escapeHtml(post.content)}</div>
-          ${post.image ? `<img class="post-image" src="${post.image}" alt="Post image" />` : ''}
+          ${renderMediaMarkup(post.image, 'Post media')}
 
           <div class="post-actions">
             <button class="action-btn ${post.liked_by_current_user ? 'liked' : ''}" data-like-id="${post.id}">
@@ -330,7 +343,7 @@ function renderExploreSection() {
                   </div>
                 </div>
                 <div class="post-content">${escapeHtml(post.content)}</div>
-                ${post.image ? `<img class="post-image" src="${post.image}" alt="Trend" />` : ''}
+                ${renderMediaMarkup(post.image, 'Trending post media')}
               </article>
             `
           )
@@ -587,6 +600,19 @@ async function toggleLike(postId) {
   });
 }
 
+async function readMediaFile(file) {
+  if (!file) {
+    return '';
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Unable to read selected media file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
 async function toggleFollow(targetUserId) {
   const result = await fetchJson(`/api/users/${targetUserId}/follow`, {
     method: 'POST',
@@ -595,6 +621,7 @@ async function toggleFollow(targetUserId) {
 
   const nextFollowing = Boolean(result.following);
   const nextFollowersCount = Number(result.followers_count ?? 0);
+  const nextFollowingCount = Number(result.following_count ?? 0);
 
   const user = getUserById(targetUserId);
   if (user) {
@@ -606,6 +633,11 @@ async function toggleFollow(targetUserId) {
   if (stateUser) {
     stateUser.is_following = nextFollowing;
     stateUser.followers_count = nextFollowersCount;
+  }
+
+  const currentUser = state.users.find((item) => Number(item.id) === Number(state.currentUserId));
+  if (currentUser) {
+    currentUser.following_count = nextFollowingCount;
   }
 
   renderProfileCard();
@@ -623,10 +655,11 @@ async function toggleFollow(targetUserId) {
 
 async function handleCreatePost() {
   const content = els.postInput.value.trim();
-  const image = els.imageInput.value.trim();
+  const selectedFile = els.imageInput.files && els.imageInput.files[0];
+  const image = selectedFile ? await readMediaFile(selectedFile) : '';
 
-  if (!content) {
-    alert('Please write something before posting.');
+  if (!content && !image) {
+    alert('Please write something or add an image/video before posting.');
     return;
   }
 

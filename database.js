@@ -338,8 +338,15 @@ async function getUserPosts(userId) {
 }
 
 async function toggleFollow(followerId, followingId) {
+  const followersCountBefore = await get('SELECT COUNT(*) AS count FROM followers WHERE following_id = ?', [followingId]).then((row) => Number(row.count || 0));
+  const followingCountBefore = await get('SELECT COUNT(*) AS count FROM followers WHERE follower_id = ?', [followerId]).then((row) => Number(row.count || 0));
+
   if (followerId === followingId) {
-    return { following: false, followers_count: await get('SELECT COUNT(*) AS count FROM followers WHERE following_id = ?', [followingId]).then((row) => Number(row.count || 0)) };
+    return {
+      following: false,
+      followers_count: followersCountBefore,
+      following_count: followingCountBefore
+    };
   }
 
   const existing = await get(
@@ -350,12 +357,14 @@ async function toggleFollow(followerId, followingId) {
   if (existing) {
     await run('DELETE FROM followers WHERE follower_id = ? AND following_id = ?', [followerId, followingId]);
     const followersCount = await get('SELECT COUNT(*) AS count FROM followers WHERE following_id = ?', [followingId]).then((row) => Number(row.count || 0));
-    return { following: false, followers_count: followersCount };
+    const followingCount = await get('SELECT COUNT(*) AS count FROM followers WHERE follower_id = ?', [followerId]).then((row) => Number(row.count || 0));
+    return { following: false, followers_count: followersCount, following_count: followingCount };
   }
 
   await run('INSERT INTO followers (follower_id, following_id) VALUES (?, ?)', [followerId, followingId]);
   const followersCount = await get('SELECT COUNT(*) AS count FROM followers WHERE following_id = ?', [followingId]).then((row) => Number(row.count || 0));
-  return { following: true, followers_count: followersCount };
+  const followingCount = await get('SELECT COUNT(*) AS count FROM followers WHERE follower_id = ?', [followerId]).then((row) => Number(row.count || 0));
+  return { following: true, followers_count: followersCount, following_count: followingCount };
 }
 
 async function getFeed(currentUserId) {
