@@ -82,7 +82,8 @@ app.post('/api/auth/login', async (req, res) => {
 
 app.get('/api/users', async (req, res) => {
   try {
-    const users = await getAllUsers();
+    const viewerId = Number(req.query.viewerId || 0);
+    const users = await getAllUsers(viewerId);
     res.json(users.map(sanitizeUser));
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch users' });

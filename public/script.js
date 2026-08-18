@@ -150,8 +150,10 @@ function renderProfileCard() {
   els.followingCount.textContent = Number(user.following_count || 0);
 
   const isSameUser = Number(user.id) === Number(state.currentUserId);
-  els.followButton.textContent = isSameUser ? 'You' : 'Follow';
+  const isFollowing = Boolean(user.is_following) && !isSameUser;
+  els.followButton.textContent = isSameUser ? 'You' : isFollowing ? 'Following' : 'Follow';
   els.followButton.disabled = isSameUser;
+  els.followButton.classList.toggle('following', isFollowing);
   els.followButton.style.opacity = isSameUser ? '0.8' : '1';
 }
 
@@ -170,7 +172,7 @@ function renderSuggestions() {
               <span class="username">@${user.username}</span>
             </div>
           </div>
-          <button class="follow-btn" data-user-id="${user.id}">Follow</button>
+          <button class="follow-btn ${Boolean(user.is_following) ? 'following' : ''}" data-user-id="${user.id}">${Boolean(user.is_following) ? 'Following' : 'Follow'}</button>
         </div>
       `
     )
@@ -180,8 +182,6 @@ function renderSuggestions() {
     button.addEventListener('click', async () => {
       const targetId = Number(button.dataset.userId);
       await toggleFollow(targetId);
-      await loadUsers();
-      await loadPosts();
     });
   });
 }
@@ -295,13 +295,13 @@ function renderExploreSection() {
               <div class="discovery-card">
                 <div class="meta">
                   <img src="${user.avatar}" alt="${user.name}" />
-                  <div>
+                  <div class="meta-copy">
                     <strong>${user.name}</strong>
                     <div class="username">@${user.username}</div>
                   </div>
                 </div>
                 <p>${user.bio || 'Creative thinker exploring new ideas.'}</p>
-                <button class="follow-btn" data-user-id="${user.id}">Follow</button>
+                <button class="follow-btn ${Boolean(user.is_following) ? 'following' : ''}" data-user-id="${user.id}">${Boolean(user.is_following) ? 'Following' : 'Follow'}</button>
               </div>
             `
           )
@@ -476,7 +476,7 @@ function renderProfileSection() {
             <div><strong>${user.followers_count || 0}</strong><span>Followers</span></div>
             <div><strong>${user.following_count || 0}</strong><span>Following</span></div>
           </div>
-          <button class="secondary-btn" data-profile-action="follow">${Number(user.id) === Number(state.currentUserId) ? 'Your profile' : 'Follow'}</button>
+          <button class="secondary-btn ${Number(user.id) !== Number(state.currentUserId) && user.is_following ? 'following' : ''}" data-profile-action="follow">${Number(user.id) === Number(state.currentUserId) ? 'Your profile' : user.is_following ? 'Following' : 'Follow'}</button>
         </div>
 
         <div class="card">
@@ -546,10 +546,11 @@ function setView(viewName) {
 }
 
 async function loadUsers() {
-  const users = await fetchJson('/api/users');
+  const users = await fetchJson(`/api/users?viewerId=${state.currentUserId || 0}`);
   state.users = users.map((user) => ({
     ...user,
-    avatar: user.avatar || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + user.username
+    avatar: user.avatar || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + user.username,
+    is_following: Boolean(user.is_following)
   }));
 
   if (!state.users.some((user) => Number(user.id) === Number(state.currentUserId))) {
@@ -584,10 +585,36 @@ async function toggleLike(postId) {
 }
 
 async function toggleFollow(targetUserId) {
-  await fetchJson(`/api/users/${targetUserId}/follow`, {
+  const result = await fetchJson(`/api/users/${targetUserId}/follow`, {
     method: 'POST',
     body: JSON.stringify({ followerId: state.currentUserId })
   });
+
+  const user = getUserById(targetUserId);
+  if (user) {
+    const nextFollowing = Boolean(result.following);
+    user.is_following = nextFollowing;
+    user.followers_count = Math.max(0, Number(user.followers_count || 0) + (nextFollowing ? 1 : -1));
+  }
+
+  const stateUser = state.users.find((item) => Number(item.id) === Number(targetUserId));
+  if (stateUser) {
+    const nextFollowing = Boolean(result.following);
+    stateUser.is_following = nextFollowing;
+    stateUser.followers_count = Math.max(0, Number(stateUser.followers_count || 0) + (nextFollowing ? 1 : -1));
+  }
+
+  renderProfileCard();
+  renderSuggestions();
+
+  if (state.currentView === 'explore') {
+    renderExploreSection();
+  }
+  if (state.currentView === 'profile') {
+    renderProfileSection();
+  }
+
+  return result;
 }
 
 async function handleCreatePost() {

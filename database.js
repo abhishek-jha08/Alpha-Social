@@ -223,26 +223,43 @@ async function initializeDatabase() {
   }
 }
 
-async function getUserById(id) {
+async function getUserById(id, viewerId = null) {
+  const currentViewerId = Number(viewerId || 0);
+
   return get(
     `SELECT u.id, u.name, u.username, u.email, u.bio, u.avatar,
       (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS posts_count,
       (SELECT COUNT(*) FROM followers WHERE following_id = u.id) AS followers_count,
-      (SELECT COUNT(*) FROM followers WHERE follower_id = u.id) AS following_count
+      (SELECT COUNT(*) FROM followers WHERE follower_id = u.id) AS following_count,
+      CASE
+        WHEN ? > 0 AND u.id != ? AND EXISTS (
+          SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_id = u.id
+        ) THEN 1
+        ELSE 0
+      END AS is_following
     FROM users u
     WHERE u.id = ?`,
-    [id]
+    [currentViewerId, currentViewerId, currentViewerId, id]
   );
 }
 
-async function getAllUsers() {
+async function getAllUsers(viewerId = null) {
+  const currentViewerId = Number(viewerId || 0);
+
   return all(
     `SELECT u.id, u.name, u.username, u.email, u.bio, u.avatar,
       (SELECT COUNT(*) FROM posts WHERE user_id = u.id) AS posts_count,
       (SELECT COUNT(*) FROM followers WHERE following_id = u.id) AS followers_count,
-      (SELECT COUNT(*) FROM followers WHERE follower_id = u.id) AS following_count
+      (SELECT COUNT(*) FROM followers WHERE follower_id = u.id) AS following_count,
+      CASE
+        WHEN ? > 0 AND u.id != ? AND EXISTS (
+          SELECT 1 FROM followers f WHERE f.follower_id = ? AND f.following_id = u.id
+        ) THEN 1
+        ELSE 0
+      END AS is_following
     FROM users u
-    ORDER BY u.id`
+    ORDER BY u.id`,
+    [currentViewerId, currentViewerId, currentViewerId]
   );
 }
 
