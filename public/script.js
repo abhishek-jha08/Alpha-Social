@@ -61,6 +61,7 @@ const els = {
   followersCount: document.getElementById('followersCount'),
   followingCount: document.getElementById('followingCount'),
   followButton: document.getElementById('followButton'),
+  logoutButton: document.getElementById('logoutButton'),
   suggestionsList: document.getElementById('suggestionsList')
 };
 
@@ -115,6 +116,27 @@ function showAuthScreen() {
 function showAppShell() {
   els.authScreen.classList.add('hidden');
   els.appShell.classList.remove('hidden');
+}
+
+function handleLogout() {
+  localStorage.removeItem('alpha-user-id');
+  localStorage.removeItem('alpha-theme');
+  document.cookie = 'alpha_session=; Max-Age=0; path=/; SameSite=Lax';
+
+  state.currentUserId = null;
+  state.selectedProfileId = null;
+  state.posts = [];
+  state.users = [];
+  state.activeChatUserId = null;
+
+  if (els.userSelect) {
+    els.userSelect.innerHTML = '';
+  }
+
+  showAuthScreen();
+  setTheme('light');
+  els.authMessage.textContent = 'You have been logged out';
+  els.authMessage.style.color = '#86efac';
 }
 
 function renderUserSelect() {
@@ -763,6 +785,7 @@ els.followButton.addEventListener('click', async () => {
   await loadUsers();
   await loadPosts();
 });
+els.logoutButton?.addEventListener('click', handleLogout);
 
 document.querySelectorAll('.nav-item').forEach((button) => {
   button.addEventListener('click', () => {
