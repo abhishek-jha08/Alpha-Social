@@ -3,8 +3,8 @@
   --bg-strong: #e8eefb;
   --panel: #ffffff;
   --soft-panel: #eef3ff;
-  --primary: #4f46e5;
-  --primary-dark: #3730a3;
+  --primary: #0EA5E9;
+  --primary-dark: #0284C7;
   --text: #111827;
   --text-soft: #6b7280;
   --border: #e5e7eb;
@@ -18,10 +18,10 @@ body.dark-mode {
   --bg-strong: #121b2d;
   --panel: #121a2b;
   --soft-panel: #1d2940;
-  --primary: #8b5cf6;
-  --primary-dark: #7c3aed;
-  --text: #edf2ff;
-  --text-soft: #b3bfd8;
+  --primary: #0EA5E9;
+  --primary-dark: #0284C7;
+  --text: #f0f9ff;
+  --text-soft: #cbd5e1;
   --border: #25314d;
   --danger: #f87171;
   --shadow: 0 18px 38px rgba(2, 6, 23, 0.58);
@@ -793,7 +793,8 @@ p {
   border: 1px solid var(--border);
   border-radius: 18px;
   padding: 14px 16px;
-  background: #f9fafb;
+  background: var(--panel);
+  color: var(--text);
   margin-bottom: 14px;
 }
 
@@ -808,7 +809,8 @@ p {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 10px 12px;
-  background: #f9fafb;
+  background: var(--panel);
+  color: var(--text);
 }
 
 .primary-btn,
@@ -897,7 +899,7 @@ p {
 
 .action-btn {
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--panel);
   color: var(--text);
   border-radius: 999px;
   padding: 8px 12px;
@@ -917,9 +919,10 @@ p {
 
 .comment-item {
   margin-bottom: 10px;
-  background: #f8fafc;
+  background: var(--soft-panel);
   border-radius: 12px;
   padding: 10px 12px;
+  color: var(--text);
 }
 
 .comment-item strong {
@@ -938,14 +941,23 @@ p {
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px 12px;
+  background: var(--panel);
+  color: var(--text);
 }
 
 .comment-form button {
-  background: #111827;
+  background: var(--primary);
   color: #fff;
   border: none;
   border-radius: 10px;
   padding: 10px 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+
+.comment-form button:hover {
+  transform: translateY(-1px);
 }
 
 .right-panel {
@@ -984,7 +996,7 @@ p {
 }
 
 .stats-row div {
-  background: #f8fafc;
+  background: var(--soft-panel);
   border-radius: 14px;
   padding: 12px 10px;
   text-align: center;
@@ -1059,24 +1071,147 @@ p {
     width: auto;
     flex: 1 1 150px;
   }
+
+  .explore-grid {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .message-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 640px) {
   .app-shell {
-    padding: 16px;
+    padding: 12px;
+    grid-template-columns: 1fr;
   }
 
-  .topbar,
-  .composer-actions,
-  .comment-form,
-  .post-header,
-  .profile-card-header,
-  .suggestion-item {
+  .sidebar {
+    padding: 16px 12px;
+    border-radius: 16px;
+    margin-bottom: 16px;
+  }
+
+  .right-panel {
+    padding: 16px;
+    border-radius: 16px;
+    margin-top: 16px;
+  }
+
+  .topbar {
     flex-direction: column;
     align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .topbar h1 {
+    font-size: 1.5rem;
+  }
+
+  .topbar-actions {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .user-picker-wrap {
+    min-width: auto;
+    flex: 1;
+  }
+
+  .composer-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  #imageInput,
+  .primary-btn {
+    width: 100%;
+  }
+
+  .comment-form {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .comment-form input,
+  .comment-form button {
+    width: 100%;
+  }
+
+  .post-header {
+    flex-direction: row;
+    justify-content: space-between;
   }
 
   .post-actions {
     flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .profile-card-header {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .profile-detail-card {
+    flex-direction: column;
+  }
+
+  .profile-detail-card .top {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .suggestion-item {
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .stats-row {
+    gap: 8px;
+  }
+
+  .stats-row div {
+    padding: 10px 8px;
+  }
+
+  .stats-row strong {
+    font-size: 1rem;
+  }
+
+  .stats-row span {
+    font-size: 0.65rem;
+  }
+
+  .card {
+    padding: 16px;
+    border-radius: 16px;
+  }
+
+  .explore-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+  }
+
+  .message-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .chat-list {
+    display: none;
+  }
+
+  .message-input-row {
+    flex-direction: row;
+    gap: 8px;
   }
 }
