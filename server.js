@@ -10,6 +10,7 @@ const {
   createPost,
   createComment,
   toggleLike,
+  deletePost,
   createUser,
   authenticateUser
 } = require('./database');
@@ -134,6 +135,20 @@ app.post('/api/auth/login', async (req, res) => {
   }
 });
 
+app.get('/api/auth/me', requireAuth, async (req, res) => {
+  try {
+    const user = await getUserProfile(Number(req.userId));
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.json(sanitizeUser(user));
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to fetch current user' });
+  }
+});
+
 app.get('/api/users', requireAuth, async (req, res) => {
   try {
     const viewerId = Number(req.query.viewerId || req.userId);
@@ -227,6 +242,27 @@ app.post('/api/posts/:id/like', requireAuth, async (req, res) => {
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: 'Failed to update like status' });
+  }
+});
+
+app.delete('/api/posts/:id', requireAuth, async (req, res) => {
+  try {
+    const postId = Number(req.params.id);
+    const userId = Number(req.body.userId || req.userId);
+
+    if (userId !== Number(req.userId)) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const result = await deletePost(postId, userId);
+
+    if (!result.deleted) {
+      return res.status(404).json({ error: 'Post not found' });
+    }
+
+    return res.json({ success: true, deleted: true });
+  } catch (error) {
+    return res.status(500).json({ error: 'Failed to delete post' });
   }
 });
 

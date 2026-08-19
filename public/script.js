@@ -139,6 +139,19 @@ function handleLogout() {
   els.authMessage.style.color = '#86efac';
 }
 
+async function deletePost(postId) {
+  await fetchJson(`/api/posts/${postId}`, {
+    method: 'DELETE',
+    body: JSON.stringify({ userId: state.currentUserId })
+  });
+
+  await loadPosts();
+
+  if (state.currentView === 'profile') {
+    renderProfileSection();
+  }
+}
+
 function renderUserSelect() {
   const currentUser = getUserById(state.currentUserId);
   if (!currentUser) {
@@ -523,7 +536,16 @@ function renderProfileSection() {
           </div>
           ${userPosts.length ? userPosts.map((post) => `
             <div class="comment-item">
-              <strong>${user.name}</strong>
+              <div class="post-header">
+                <div class="post-user">
+                  <img src="${user.avatar}" alt="${user.name}" />
+                  <div>
+                    <strong>${user.name}</strong>
+                    <div class="username">@${user.username}</div>
+                  </div>
+                </div>
+                ${Number(user.id) === Number(state.currentUserId) ? `<button class="secondary-btn" data-delete-post-id="${post.id}" type="button">Remove post</button>` : ''}
+              </div>
               <div>${escapeHtml(post.content)}</div>
             </div>
           `).join('') : '<p class="username">No posts yet.</p>'}
@@ -531,6 +553,15 @@ function renderProfileSection() {
       </div>
     </div>
   `;
+
+  els.feed.querySelectorAll('[data-delete-post-id]').forEach((button) => {
+    button.addEventListener('click', async () => {
+      const postId = Number(button.dataset.deletePostId);
+      if (!postId) return;
+
+      await deletePost(postId);
+    });
+  });
 
   const followButton = els.feed.querySelector('[data-profile-action="follow"]');
   followButton?.addEventListener('click', async () => {
@@ -810,23 +841,24 @@ async function initializeApp() {
   setTheme(state.theme);
   updateAuthMode();
 
-  const storedUserId = Number(localStorage.getItem('alpha-user-id') || 0);
-  const hasSession = document.cookie.includes('alpha_session=');
+  try {
+    const result = await fetchJson('/api/auth/me');
 
-  if (storedUserId && hasSession) {
-    state.currentUserId = storedUserId;
-    state.selectedProfileId = storedUserId;
-    try {
+    if (result && result.id) {
+      state.currentUserId = Number(result.id);
+      state.selectedProfileId = state.currentUserId;
+      localStorage.setItem('alpha-user-id', String(state.currentUserId));
       await loadUsers();
       await loadPosts();
       showAppShell();
       setView('home');
       return;
-    } catch (error) {
-      localStorage.removeItem('alpha-user-id');
-      document.cookie = 'alpha_session=; Max-Age=0; path=/; SameSite=Lax';
-      state.currentUserId = null;
     }
+  } catch (error) {
+    localStorage.removeItem('alpha-user-id');
+    document.cookie = 'alpha_session=; Max-Age=0; path=/; SameSite=Lax';
+    state.currentUserId = null;
+    state.selectedProfileId = null;
   }
 
   state.currentUserId = null;

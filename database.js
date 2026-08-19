@@ -431,6 +431,20 @@ async function createComment(postId, userId, content) {
   return { id: result.id };
 }
 
+async function deletePost(postId, userId) {
+  const existing = await get('SELECT id FROM posts WHERE id = ? AND user_id = ?', [postId, userId]);
+
+  if (!existing) {
+    return { deleted: false };
+  }
+
+  await run('DELETE FROM comments WHERE post_id = ?', [postId]);
+  await run('DELETE FROM likes WHERE post_id = ?', [postId]);
+  await run('DELETE FROM posts WHERE id = ? AND user_id = ?', [postId, userId]);
+
+  return { deleted: true };
+}
+
 async function toggleLike(postId, userId) {
   const existing = await get('SELECT * FROM likes WHERE post_id = ? AND user_id = ?', [postId, userId]);
 
@@ -455,6 +469,7 @@ module.exports = {
   createPost,
   createComment,
   toggleLike,
+  deletePost,
   createUser,
   authenticateUser,
   all,

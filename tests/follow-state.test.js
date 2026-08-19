@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { initializeDatabase, getAllUsers, toggleFollow, db } = require('../database');
+const { initializeDatabase, getAllUsers, toggleFollow, deletePost, db } = require('../database');
 
 (async () => {
   await initializeDatabase();
@@ -43,6 +43,23 @@ const { initializeDatabase, getAllUsers, toggleFollow, db } = require('../databa
   assert.equal(Number(finalMia.followers_count), beforeUnfollow - 1, 'Follower count should decrease by exactly one after unfollow');
   assert.equal(Number(finalAva.following_count), 1, 'Following count should decrease by exactly one after unfollow');
   assert.equal(Number(finalMia.is_following), 0, 'The user should be marked as not followed after toggling off');
+
+  const tempPostResult = await new Promise((resolve, reject) => {
+    db.run('INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)', [1, 'Temporary post for delete test', ''], (error) => {
+      if (error) return reject(error);
+      resolve({ id: this.lastID });
+    });
+  });
+
+  await deletePost(tempPostResult.id, 1);
+  const deletedCheck = await new Promise((resolve, reject) => {
+    db.get('SELECT id FROM posts WHERE id = ?', [tempPostResult.id], (error, row) => {
+      if (error) return reject(error);
+      resolve(row);
+    });
+  });
+
+  assert.equal(deletedCheck, undefined, 'Delete post should remove the post record from the database');
 
   console.log('follow-state test passed');
 })().catch((error) => {
