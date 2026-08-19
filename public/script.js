@@ -534,7 +534,12 @@ function renderProfileSection() {
 
   const followButton = els.feed.querySelector('[data-profile-action="follow"]');
   followButton?.addEventListener('click', async () => {
-    if (Number(user.id) === Number(state.currentUserId)) return;
+    if (Number(user.id) === Number(state.currentUserId)) {
+      state.selectedProfileId = state.currentUserId;
+      setView('profile');
+      return;
+    }
+
     await toggleFollow(Number(user.id));
     await loadUsers();
     await loadPosts();
@@ -744,7 +749,6 @@ async function handleAuthSubmit(event) {
     state.currentUserId = Number(user.id);
     state.selectedProfileId = state.currentUserId;
     localStorage.setItem('alpha-user-id', String(user.id));
-    document.cookie = `alpha_session=${encodeURIComponent(user.id)}; path=/; SameSite=Lax`;
     els.authMessage.textContent = 'Login successful';
     els.authMessage.style.color = '#86efac';
     await loadUsers();
@@ -780,7 +784,12 @@ els.userSelect.addEventListener('change', (event) => {
 
 els.postButton.addEventListener('click', handleCreatePost);
 els.followButton.addEventListener('click', async () => {
-  if (Number(state.selectedProfileId) === Number(state.currentUserId)) return;
+  if (Number(state.selectedProfileId) === Number(state.currentUserId)) {
+    state.selectedProfileId = state.currentUserId;
+    setView('profile');
+    return;
+  }
+
   await toggleFollow(state.selectedProfileId);
   await loadUsers();
   await loadPosts();

@@ -31,8 +31,13 @@ function getSessionUserId(req) {
   }
 
   const token = decodeURIComponent(match[1]);
-  if (!token || !token.includes(':')) {
+  if (!token) {
     return null;
+  }
+
+  if (!token.includes(':')) {
+    const userId = Number(token);
+    return Number.isFinite(userId) && userId > 0 ? userId : null;
   }
 
   const [userId, signature] = token.split(':');
@@ -41,7 +46,11 @@ function getSessionUserId(req) {
   }
 
   const expected = crypto.createHmac('sha256', SESSION_SECRET).update(String(userId)).digest('hex');
-  if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+  try {
+    if (!crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) {
+      return null;
+    }
+  } catch (error) {
     return null;
   }
 
