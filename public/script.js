@@ -714,25 +714,34 @@ async function toggleFollow(targetUserId) {
 async function handleCreatePost() {
   const content = els.postInput.value.trim();
   const selectedFile = els.imageInput.files && els.imageInput.files[0];
-  const image = selectedFile ? await readMediaFile(selectedFile) : '';
 
-  if (!content && !image) {
+  if (!content && !selectedFile) {
     alert('Please write something or add an image/video before posting.');
     return;
   }
 
-  await fetchJson('/api/posts', {
-    method: 'POST',
-    body: JSON.stringify({
-      userId: state.currentUserId,
-      content,
-      image
-    })
-  });
+  els.postButton.disabled = true;
 
-  els.postInput.value = '';
-  els.imageInput.value = '';
-  await loadPosts();
+  try {
+    const image = selectedFile ? await readMediaFile(selectedFile) : '';
+
+    await fetchJson('/api/posts', {
+      method: 'POST',
+      body: JSON.stringify({
+        userId: state.currentUserId,
+        content,
+        image
+      })
+    });
+
+    els.postInput.value = '';
+    els.imageInput.value = '';
+    await loadPosts();
+  } catch (error) {
+    alert(error.message || 'Unable to publish post.');
+  } finally {
+    els.postButton.disabled = false;
+  }
 }
 
 async function handleAuthSubmit(event) {

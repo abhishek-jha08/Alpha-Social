@@ -74,7 +74,7 @@ const sanitizeUser = (user) => {
   return safe;
 };
 
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '25mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -194,16 +194,18 @@ app.post('/api/posts', requireAuth, async (req, res) => {
   try {
     const { userId, content, image } = req.body;
     const currentUserId = Number(userId || req.userId);
+    const cleanContent = String(content || '').trim();
+    const media = String(image || '').trim();
 
     if (currentUserId !== Number(req.userId)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    if (!content) {
-      return res.status(400).json({ error: 'User ID and post content are required' });
+    if (!cleanContent && !media) {
+      return res.status(400).json({ error: 'Add text, an image, or a video before posting' });
     }
 
-    const result = await createPost(currentUserId, String(content), image || '');
+    const result = await createPost(currentUserId, cleanContent, media);
     res.status(201).json({ success: true, postId: result.id });
   } catch (error) {
     res.status(400).json({ error: error.message || 'Failed to create post' });

@@ -402,15 +402,16 @@ async function getFeed(currentUserId) {
 }
 
 async function createPost(userId, content, image = '') {
-  const cleanContent = content.trim();
+  const cleanContent = String(content || '').trim();
+  const media = String(image || '').trim();
 
-  if (!cleanContent) {
-    throw new Error('Post content is required');
+  if (!cleanContent && !media) {
+    throw new Error('Post must include text, an image, or a video');
   }
 
   const result = await run(
     'INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)',
-    [userId, cleanContent, image]
+    [userId, cleanContent, media]
   );
 
   return { id: result.id };

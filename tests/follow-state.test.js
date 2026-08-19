@@ -1,5 +1,5 @@
 const assert = require('node:assert/strict');
-const { initializeDatabase, getAllUsers, toggleFollow, deletePost, db } = require('../database');
+const { initializeDatabase, getAllUsers, toggleFollow, deletePost, createPost, db } = require('../database');
 
 (async () => {
   await initializeDatabase();
@@ -43,6 +43,23 @@ const { initializeDatabase, getAllUsers, toggleFollow, deletePost, db } = requir
   assert.equal(Number(finalMia.followers_count), beforeUnfollow - 1, 'Follower count should decrease by exactly one after unfollow');
   assert.equal(Number(finalAva.following_count), 1, 'Following count should decrease by exactly one after unfollow');
   assert.equal(Number(finalMia.is_following), 0, 'The user should be marked as not followed after toggling off');
+
+  const mediaOnlyPost = await createPost(1, '', 'data:video/mp4;base64,AAAA');
+  const textAndMediaPost = await createPost(1, 'A mixed post', 'data:image/png;base64,AAAA');
+  const createdPosts = await new Promise((resolve, reject) => {
+    db.all('SELECT content, image FROM posts WHERE id IN (?, ?) ORDER BY id', [mediaOnlyPost.id, textAndMediaPost.id], (error, rows) => {
+      if (error) return reject(error);
+      resolve(rows);
+    });
+  });
+
+  assert.deepEqual(createdPosts, [
+    { content: '', image: 'data:video/mp4;base64,AAAA' },
+    { content: 'A mixed post', image: 'data:image/png;base64,AAAA' }
+  ], 'Posts should support media-only and mixed text/media content');
+
+  await deletePost(mediaOnlyPost.id, 1);
+  await deletePost(textAndMediaPost.id, 1);
 
   const tempPostResult = await new Promise((resolve, reject) => {
     db.run('INSERT INTO posts (user_id, content, image) VALUES (?, ?, ?)', [1, 'Temporary post for delete test', ''], (error) => {
